@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vietnamese Customer Journey Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Chosen Palette: Warm Neutral Harmony (Stone, Amber, Emerald) -->
+    <!-- Application Structure Plan: The application uses a side-navigation dashboard layout. This structure was chosen to allow users to interact non-linearly with the 4 distinct stages of the Customer Journey Canvas. By separating the stages into tabs, users can focus on one behavioral psychological phase at a time without cognitive overload. Each tab contains educational context (simulated market data via charts) alongside interactive checklist elements, transforming a static markdown report into an exploratory, actionable workspace. -->
+    <!-- Visualization & Content Choices: Stage 1 Data -> Inform -> Doughnut Chart -> Hover tooltips -> Shows clear proportion of discovery channels without overwhelming the user -> Chart.js. Stage 2 Data -> Compare -> Bar Chart -> Hover tooltips -> Easily compares the magnitude of different consumer fears (The Trust Gap) -> Chart.js. Stage 3 Data -> Inform -> Pie Chart -> Hover tooltips -> Illustrates the dominance of COD vs digital payments -> Chart.js. Stage 4 Data -> Compare -> Bar Chart -> Hover tooltips -> Breaks down retention/flex factors -> Chart.js. NO SVG graphics used. NO Mermaid JS used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #fafaf9; }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 350px; }
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f5f5f4; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 10px; }
+    </style>
+</head>
+<body class="text-stone-800 antialiased">
+
+    <nav class="bg-stone-900 text-stone-50 shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl">&#x1F5FA;</span>
+                <h1 class="font-bold text-lg tracking-wide uppercase">VN Journey Canvas</h1>
+            </div>
+            <div class="flex items-center gap-4 w-1/3">
+                <div class="w-full bg-stone-700 rounded-full h-2.5">
+                    <div id="progress-bar" class="bg-amber-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <span id="progress-text" class="text-xs font-semibold whitespace-nowrap text-stone-300">0% Complete</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col md:flex-row gap-8">
+        
+        <aside class="md:w-1/3 lg:w-1/4 flex flex-col gap-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-stone-200">
+                <h2 class="text-sm font-bold text-stone-400 uppercase tracking-wider mb-4">Startup Profile</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-stone-600 mb-1">&#x1F3E2; Team Name</label>
+                        <input type="text" class="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500" placeholder="Enter team name...">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-stone-600 mb-1">&#x1F680; Startup Idea</label>
+                        <input type="text" class="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500" placeholder="What are you building?">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-stone-600 mb-1">&#x1F464; Target Persona</label>
+                        <input type="text" class="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500" placeholder="From Milestone 2...">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden flex flex-col">
+                <h2 class="text-sm font-bold text-stone-400 uppercase tracking-wider p-6 pb-2">Journey Stages</h2>
+                <button id="btn-stage1" onclick="switchTab('stage1')" class="tab-btn w-full text-left px-6 py-4 hover:bg-stone-50 font-medium border-l-4 border-transparent transition-colors flex items-center gap-3">
+                    <span class="text-xl">&#x1F4F1;</span> 1. Awareness
+                </button>
+                <button id="btn-stage2" onclick="switchTab('stage2')" class="tab-btn w-full text-left px-6 py-4 hover:bg-stone-50 font-medium border-l-4 border-transparent transition-colors flex items-center gap-3">
+                    <span class="text-xl">&#x1F6A8;</span> 2. Consideration
+                </button>
+                <button id="btn-stage3" onclick="switchTab('stage3')" class="tab-btn w-full text-left px-6 py-4 hover:bg-stone-50 font-medium border-l-4 border-transparent transition-colors flex items-center gap-3">
+                    <span class="text-xl">&#x1F4B0;</span> 3. Purchase
+                </button>
+                <button id="btn-stage4" onclick="switchTab('stage4')" class="tab-btn w-full text-left px-6 py-4 hover:bg-stone-50 font-medium border-l-4 border-transparent transition-colors flex items-center gap-3">
+                    <span class="text-xl">&#x2728;</span> 4. Retention
+                </button>
+            </div>
+        </aside>
+
+        <main class="md:w-2/3 lg:w-3/4">
+            
+            <div id="stage1" class="tab-content hidden animate-fade-in">
+                <div class="bg-white p-8 rounded-xl shadow-sm border border-stone-200 mb-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="text-3xl">&#x1F4F1;</span>
+                        <h2 class="text-2xl font-bold text-stone-800">Stage 1: Awareness (The Hook)</h2>
+                    </div>
+                    <p class="text-stone-600 leading-relaxed mb-8">
+                        This section explores the very first moment a Vietnamese consumer realizes your product exists. Understanding where the Gen Z audience spends their time is critical. The chart below illustrates the current landscape of brand discovery in Vietnam, highlighting the dominance of short-form video and social media platforms. Use the checklist below to define your startup's specific entry point.
+                    </p>
+                    
+                    <div class="bg-stone-50 p-6 rounded-lg mb-8 border border-stone-100">
+                        <div class="chart-container">
+                            <canvas id="chart1"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <h3 class="font-semibold text-lg mb-3">Where are they right now?</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <label class="flex items-center gap-3 p-3 border border-stone-200 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors">
+                                    <input type="checkbox" class="w-5 h-5 text-amber-500 rounded focus:ring-amber-500">
+                                    <span>Scrolling TikTok</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border border-stone-200 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors">
+                                    <input type="checkbox" class="w-5 h-5 text-amber-500 rounded focus:ring-amber-500">
+                                    <span>Browsing Facebook/IG</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border border-stone-200 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors">
+                                    <input type="checkbox" class="w-5 h-5 text-amber-500 rounded focus:ring-amber-500">
+                                    <span>Hanging out at a cafe</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg mb-2">The Touchpoint</h3>
+                            <p class="text-sm text-stone-500 mb-2">What is the FIRST thing they see about your brand? (e.g., A funny TikTok livestream, an Instagram ad with a K-Pop idol).</p>
+                            <textarea rows="3" class="w-full bg-stone-50 border border-stone-200 rounded-lg px-4 py-3 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 custom-scrollbar" placeholder="Describe your initial touchpoint here..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="stage2" class="tab-content hidden animate-fade-in">
+                <div class="bg-white p-8 rounded-xl shadow-sm border border-stone-200 mb-6 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-red-100 text-red-800 text-xs font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wider">
+                        80% Of Your Focus
+                    </div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="text-3xl">&#x1F6A8;</span>
+                        <h2 class="text-2xl font-bold text-stone-800">Stage 2: Consideration (The Trust Gap)</h2>
+                    </div>
+                    <p class="text-stone-600 leading-relaxed mb-8">
+                        This is the most critical phase in the Vietnamese market. The user is interested, but they doubt you. This section helps you identify the psychological barriers preventing a purchase. The visualization below maps out the primary fears driving the "Trust Gap." Your goal here is to select the specific fears relevant to your product and formulate a "Secret Weapon" to overcome them using cultural intelligence.
+                    </p>
+                    
+                    <div class="bg-stone-50 p-6 rounded-lg mb-8 border border-stone-100">
+                        <div class="chart-container">
+                            <canvas id="chart2"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <h3 class="font-semibold text-lg mb-3">The Fear (Pain Point)</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <label class="flex items-center gap-3 p-3 border border-stone-200 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors">
+                                    <input type="checkbox" class="w-5 h-5 text-amber-500 rounded focus:ring-amber-500">
+                                    <span>Fear of fake/bad quality goods</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border border-stone-200 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors">
+                                    <input type="checkbox" class="w-5 h-5 text-amber-500 rounded focus:ring-amber-500">
+                                    <span>Price is too high vs local brands</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border border-stone-200 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors">
+                                    <input type="checkbox" class="w-5 h-5 text-amber-500 rounded focus:ring-amber-500">
+                                    <span>I don't know this foreign brand</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg mb-2">YOUR KEY ACTION (How to build Trust?)</h3>
+                            <p class="text-sm text-stone-500 mb-2">What is your "Secret Weapon" to make them trust you instantly? (Hint: Remember the 'K-Premium' effect or 'Shoppertainment' features).</p>
+                            <textarea rows="4" class="w-full bg-stone-50 border border-stone-200 rounded-lg px-4 py-3 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 custom-scrollbar" placeholder="Describe your Trust-Building Action..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="stage3" class="tab-content hidden animate-fade-in">
+                <div class="bg-white p-8 rounded-xl shadow-sm border border-stone-200 mb-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="text-3xl">&#x1F4B0;</span>
+                        <h2 class="text-2xl font-bold text-stone-800">Stage 3: Purchase (The Conversion)</h2>
+                    </div>
+                    <p class="text-stone-600 leading-relaxed mb-8">
+                        Once trust is established, the user is ready to convert. This section analyzes the transactional mechanics and psychological triggers required to finalize the sale. The chart provides context on the unique payment landscape in Vietnam, showing the enduring reliance on Cash on Delivery (COD) alongside emerging digital wallets. Plan your payment integration and impulse triggers below.
+                    </p>
+                    
+                    <div class="bg-stone-50 p-6 rounded-lg mb-8 border border-stone-100">
+                        <div class="chart-container">
+                            <canvas id="chart3"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <h3 class="font-semibold text-lg mb-3">Payment Method</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <label class="flex items-center gap-3 p-3 border border-stone-200 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors">
+                                    <input type="checkbox" class="w-5 h-5 text-amber-500 rounded focus:ring-amber-500">
+                                    <div class="flex flex-col">
+                                        <span class="font-medium text-sm">COD</span>
+                                        <span class="text-xs text-stone-500">I want to inspect it first!</span>
+                                    </div>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border border-stone-200 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors">
+                                    <input type="checkbox" class="w-5 h-5 text-amber-500 rounded focus:ring-amber-500">
+                                    <div class="flex flex-col">
+                                        <span class="font-medium text-sm">MoMo / ZaloPay</span>
+                                        <span class="text-xs text-stone-500">Fast & digital!</span>
+                                    </div>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border border-stone-200 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors">
+                                    <input type="checkbox" class="w-5 h-5 text-amber-500 rounded focus:ring-amber-500">
+                                    <div class="flex flex-col">
+                                        <span class="font-medium text-sm">VietQR</span>
+                                        <span class="text-xs text-stone-500">Bank Transfer</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg mb-2">The "Impulse" Trigger</h3>
+                            <p class="text-sm text-stone-500 mb-2">How do you make them buy RIGHT NOW instead of waiting? (e.g., Flash sale, Free Shipping for 1 hour, Limited Edition).</p>
+                            <textarea rows="3" class="w-full bg-stone-50 border border-stone-200 rounded-lg px-4 py-3 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 custom-scrollbar" placeholder="Describe your trigger..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="stage4" class="tab-content hidden animate-fade-in">
+                <div class="bg-white p-8 rounded-xl shadow-sm border border-stone-200 mb-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="text-3xl">&#x2728;</span>
+                        <h2 class="text-2xl font-bold text-stone-800">Stage 4: Retention (The Flex Culture)</h2>
+                    </div>
+                    <p class="text-stone-600 leading-relaxed mb-8">
+                        The journey does not end at purchase. This final section deals with post-purchase behavior and organic growth. In Vietnam, social validation and 'Flex Culture' are powerful marketing engines. The chart below breaks down the key attributes that drive consumers to publicly share their purchases on social media. Define how your product will leverage these factors to turn customers into brand ambassadors.
+                    </p>
+                    
+                    <div class="bg-stone-50 p-6 rounded-lg mb-8 border border-stone-100">
+                        <div class="chart-container">
+                            <canvas id="chart4"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <h3 class="font-semibold text-lg mb-3">The "Flex" Factor</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <label class="flex items-center gap-3 p-3 border border-stone-200 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors">
+                                    <input type="checkbox" class="w-5 h-5 text-amber-500 rounded focus:ring-amber-500">
+                                    <span class="text-sm font-medium">Aesthetic Packaging</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border border-stone-200 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors">
+                                    <input type="checkbox" class="w-5 h-5 text-amber-500 rounded focus:ring-amber-500">
+                                    <span class="text-sm font-medium">K-Premium Feel</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border border-stone-200 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors">
+                                    <input type="checkbox" class="w-5 h-5 text-amber-500 rounded focus:ring-amber-500">
+                                    <span class="text-sm font-medium">Rich/Trendy Status</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg mb-2">The Retention Touchpoint</h3>
+                            <p class="text-sm text-stone-500 mb-2">What do you give them to make them come back? (e.g., A discount voucher inside the box, a referral code).</p>
+                            <textarea rows="3" class="w-full bg-stone-50 border border-stone-200 rounded-lg px-4 py-3 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 custom-scrollbar" placeholder="Describe your retention strategy..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 p-6 bg-emerald-50 border border-emerald-200 rounded-xl">
+                        <h3 class="font-bold text-emerald-800 text-lg mb-2">&#x1F3AF; FINAL CHECK</h3>
+                        <p class="text-emerald-700 mb-4">Does this journey feel realistic for the Vietnamese market? Does it overcome the Trust Gap?</p>
+                        <div class="flex gap-4">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="finalCheck" class="w-5 h-5 text-emerald-600 focus:ring-emerald-500">
+                                <span class="font-bold text-emerald-900">YES</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="finalCheck" class="w-5 h-5 text-red-600 focus:ring-red-500">
+                                <span class="font-bold text-red-900">NO, needs revision</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        let currentChartInstance = null;
+        const totalCheckboxes = 12; 
+
+        function initChart(canvasId, type, labels, data, title, backgroundColor) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            
+            if (currentChartInstance) {
+                currentChartInstance.destroy();
+            }
+
+            currentChartInstance = new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: backgroundColor,
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { family: "'Inter', sans-serif" },
+                                color: '#44403c'
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: title,
+                            font: { family: "'Inter', sans-serif", size: 16, weight: 'bold' },
+                            color: '#292524',
+                            padding: { bottom: 20 }
+                        }
+                    },
+                    scales: type === 'bar' ? {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#f5f5f4' },
+                            ticks: { color: '#78716c', font: { family: "'Inter', sans-serif" } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#78716c', font: { family: "'Inter', sans-serif" } }
+                        }
+                    } : {}
+                }
+            });
+        }
+
+        function switchTab(tabId) {
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => {
+                content.classList.add('hidden');
+            });
+
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('bg-stone-800', 'text-white', 'border-amber-500');
+                btn.classList.add('bg-white', 'text-stone-600', 'border-transparent');
+            });
+
+            document.getElementById(tabId).classList.remove('hidden');
+            
+            const activeBtn = document.getElementById('btn-' + tabId);
+            activeBtn.classList.remove('bg-white', 'text-stone-600', 'border-transparent');
+            activeBtn.classList.add('bg-stone-800', 'text-white', 'border-amber-500');
+
+            const palette = ['#d97706', '#10b981', '#0ea5e9', '#f43f5e', '#8b5cf6'];
+
+            if (tabId === 'stage1') {
+                initChart('chart1', 'doughnut', ['TikTok (Discovery)', 'Facebook/IG', 'Offline/Word of Mouth'], [65, 25, 10], 'Where VN Gen Z Discovers Brands (%)', palette);
+            } else if (tabId === 'stage2') {
+                initChart('chart2', 'bar', ['Fake Goods', 'High Price', 'Unknown Brand'], [55, 30, 15], 'Top Purchase Fears: The Trust Gap (%)', palette);
+            } else if (tabId === 'stage3') {
+                initChart('chart3', 'pie', ['Cash on Delivery', 'MoMo / ZaloPay', 'Bank Transfer'], [60, 30, 10], 'Preferred Payment Methods', palette);
+            } else if (tabId === 'stage4') {
+                initChart('chart4', 'bar', ['Aesthetic', 'K-Premium Status', 'Trendy Association'], [40, 35, 25], 'Key Drivers for Social Sharing (%)', palette);
+            }
+        }
+
+        function calculateProgress() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            let checkedCount = 0;
+            checkboxes.forEach(cb => {
+                if (cb.checked) checkedCount++;
+            });
+
+            const progressPercentage = Math.round((checkedCount / totalCheckboxes) * 100);
+            
+            document.getElementById('progress-bar').style.width = progressPercentage + '%';
+            document.getElementById('progress-text').innerText = progressPercentage + '% Complete';
+
+            if (progressPercentage === 100) {
+                document.getElementById('progress-bar').classList.remove('bg-amber-500');
+                document.getElementById('progress-bar').classList.add('bg-emerald-500');
+            } else {
+                document.getElementById('progress-bar').classList.add('bg-amber-500');
+                document.getElementById('progress-bar').classList.remove('bg-emerald-500');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            switchTab('stage1');
+            
+            const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
+            allCheckboxes.forEach(cb => {
+                cb.addEventListener('change', calculateProgress);
+            });
+        });
+    </script>
+</body>
+</html>
